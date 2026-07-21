@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>조문비 기록부</title>
+<style>
+  :root {
+    --bg: #f4f4f2;
+    --card: #ffffff;
+    --ink: #26282c;
+    --sub: #6b7078;
+    --line: #e3e3df;
+    --accent: #3d4a5c;
+    --accent-soft: #eef1f5;
+    --danger: #b0433c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.5;
+    padding: 16px; max-width: 1100px; margin: 0 auto;
+  }
+  header { text-align: center; padding: 18px 0 22px; }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  header p { color: var(--sub); font-size: 13px; margin-top: 4px; }
+
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px;
+  }
+  .card h2 { font-size: 15px; margin-bottom: 14px; color: var(--accent); }
+
+  label { display: block; font-size: 13px; color: var(--sub); margin: 12px 0 4px; }
+  label:first-of-type { margin-top: 0; }
+  input, select {
+    width: 100%; padding: 11px 12px; font-size: 16px;
+    border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+  .paytype { display: flex; gap: 6px; margin-bottom: 4px; }
+  .paytype label {
+    flex: 1; margin: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+    font-size: 14px; color: var(--ink); background: #fff;
+  }
+  .paytype label:has(input:checked) { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .paytype input { width: auto; accent-color: #fff; }
+
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .quick button {
+    padding: 8px 12px; font-size: 14px; border: 1px solid var(--line);
+    background: var(--accent-soft); color: var(--accent);
+    border-radius: 20px; cursor: pointer;
+  }
+  .quick button:active { background: var(--accent); color: #fff; }
+
+  .btn {
+    width: 100%; margin-top: 18px; padding: 14px; font-size: 17px; font-weight: 700;
+    background: var(--accent); color: #fff; border: none; border-radius: 10px; cursor: pointer;
+  }
+  .btn:active { opacity: .85; }
+  .btn-cancel {
+    width: 100%; margin-top: 8px; padding: 10px; font-size: 14px;
+    background: none; color: var(--sub); border: 1px solid var(--line); border-radius: 10px;
+    cursor: pointer; display: none;
+  }
+
+  .summary-top { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat { flex: 1; background: var(--accent); color: #fff; border-radius: 12px; padding: 14px 16px; }
+  .stat .num { font-size: 22px; font-weight: 700; }
+  .stat .lbl { font-size: 12px; opacity: .8; }
+
+  .pending-note { font-size: 12px; color: var(--danger); margin: -8px 0 14px; text-align: right; }
+
+  .side-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .side-item {
+    background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; font-size: 13px;
+  }
+  .side-item b { display: block; font-size: 14px; }
+  .side-item span { color: var(--sub); font-size: 12px; }
+  .side-item .amt { color: var(--ink); font-weight: 700; font-size: 14px; }
+
+  .toolbar { display: flex; gap: 8px; margin: 16px 0 10px; flex-wrap: wrap; }
+  .toolbar input, .toolbar select { width: auto; flex: 1; min-width: 120px; padding: 9px 10px; font-size: 14px; }
+  .toolbar .export {
+    padding: 9px 16px; font-size: 14px; font-weight: 600; border: 1px solid var(--accent);
+    color: var(--accent); background: #fff; border-radius: 8px; cursor: pointer;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--sub); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  td.amt { text-align: right; font-weight: 700; white-space: nowrap; }
+  td.amt .transfer { color: var(--accent); font-size: 12px; font-weight: 600; }
+  td.time { color: var(--sub); font-size: 12px; white-space: nowrap; }
+  .row-btns { white-space: nowrap; text-align: right; }
+  .row-btns button {
+    border: none; background: none; cursor: pointer; font-size: 15px; padding: 4px 6px;
+  }
+  .empty { text-align: center; color: var(--sub); padding: 30px 0; font-size: 14px; }
+  .notice { font-size: 12px; color: var(--sub); margin-top: 14px; }
+
+  tr.group-row td {
+    background: var(--accent-soft); font-weight: 700; color: var(--accent);
+    font-size: 13px; padding: 8px 10px; border-top: 2px solid var(--accent);
+  }
+  tr.group-row td span { font-weight: 600; color: var(--sub); font-size: 12px; margin-left: 8px; }
+
+  .pager { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+  .pager button {
+    min-width: 34px; padding: 7px 10px; font-size: 14px; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px;
+  }
+  .pager button.cur { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .pager button:disabled { opacity: .35; cursor: default; }
+  .pager .info { font-size: 12px; color: var(--sub); margin-left: 8px; }
+
+  .filebar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #fdf9ee; border: 1px solid #e8dfc2; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 16px; font-size: 13px;
+  }
+  .filebar .dot { width: 9px; height: 9px; border-radius: 50%; background: #c2a94e; flex-shrink: 0; }
+  .filebar.connected { background: #eef5ee; border-color: #cfe0cf; }
+  .filebar.connected .dot { background: #4a8a4a; }
+  .filebar button {
+    padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--accent); color: var(--accent); background: #fff; border-radius: 8px;
+  }
+  .filebar #fileStatus { flex: 1; min-width: 200px; }
+
+  /* 설정 창 */
+  .overlay {
+    display: none; position: fixed; inset: 0; background: rgba(30,32,36,.45);
+    z-index: 50; padding: 20px; overflow-y: auto;
+  }
+  .overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+  .settings { width: 100%; max-width: 480px; margin-top: 40px; }
+  .fam-list { list-style: none; margin: 8px 0; }
+  .fam-list li {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; font-size: 14px;
+  }
+  .fam-list li button { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 14px; }
+  .fam-add { display: flex; gap: 6px; }
+  .fam-add input { flex: 1; padding: 9px 10px; font-size: 14px; }
+  .fam-add button {
+    padding: 9px 14px; font-size: 14px; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: #fff; border: none; border-radius: 8px; white-space: nowrap;
+  }
+  .settings .danger-zone { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .settings .danger-zone button {
+    background: none; border: 1px solid var(--danger); color: var(--danger);
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="pageTitle">조문비 기록부</h1>
+  <p>입력 즉시 자동 저장됩니다</p>
+</header>
+
+<div class="filebar" id="fileBar">
+  <span class="dot"></span>
+  <span id="fileStatus">현재 브라우저 내부에만 저장 중 — 폴더 파일에 연결하면 더 안전합니다.</span>
+  <button id="btnConnect" onclick="connectFile()">📁 폴더 파일에 연결</button>
+  <button id="btnReconnect" style="display:none" onclick="reconnectFile()">🔗 저장 파일 다시 연결</button>
+  <button onclick="openSettings()">⚙ 설정</button>
+</div>
+
+<div class="grid">
+  <!-- 입력 -->
+  <div class="card">
+    <h2 id="formTitle">조문비 접수</h2>
+    <label>조문객 성함 *</label>
+    <input id="fName" type="text" placeholder="예: 김철수" autocomplete="off">
+
+    <label>접수 방식 *</label>
+    <div class="paytype">
+      <label><input type="radio" name="ptype" value="cash" checked onchange="payTypeChanged()">현금 (부의금)</label>
+      <label><input type="radio" name="ptype" value="transfer" onchange="payTypeChanged()">계좌 송금</label>
+    </div>
+
+    <label id="amountLabel">금액 (원) *</label>
+    <input id="fAmount" type="text" inputmode="numeric" placeholder="예: 50,000" autocomplete="off">
+    <div class="quick">
+      <button type="button" onclick="setAmt(30000)">3만</button>
+      <button type="button" onclick="setAmt(50000)">5만</button>
+      <button type="button" onclick="setAmt(70000)">7만</button>
+      <button type="button" onclick="setAmt(100000)">10만</button>
+      <button type="button" onclick="setAmt(200000)">20만</button>
+      <button type="button" onclick="setAmt(300000)">30만</button>
+      <button type="button" onclick="setAmt(500000)">50만</button>
+    </div>
+
+    <label>어느 분 손님인가요? *</label>
+    <select id="fSide"></select>
+
+    <label>관계 / 소속 (선택)</label>
+    <input id="fRelation" type="text" placeholder="예: 회사 동료, 대학 친구, 친척" autocomplete="off">
+
+    <button class="btn" id="btnSave" onclick="saveEntry()">접수 등록</button>
+    <button class="btn-cancel" id="btnCancel" onclick="cancelEdit()">수정 취소</button>
+    <p class="notice">등록 시간은 자동으로 기록됩니다. 계좌 송금은 금액 미확인 시 비워두고 나중에 수정하세요.</p>
+  </div>
+
+  <!-- 집계 + 목록 -->
+  <div>
+    <div class="summary-top">
+      <div class="stat"><div class="num" id="totalAmt">0원</div><div class="lbl">총 조문비 (확인된 금액)</div></div>
+      <div class="stat"><div class="num" id="totalCnt">0건</div><div class="lbl">총 접수 건수</div></div>
+    </div>
+    <div class="pending-note" id="pendingNote" style="display:none"></div>
+
+    <div class="card">
+      <h2>유족별 집계</h2>
+      <div class="side-summary" id="sideSummary"></div>
+
+      <div class="toolbar">
+        <input id="search" type="text" placeholder="성함·관계 검색" oninput="page=1;render()">
+        <select id="filterSide" onchange="page=1;render()"></select>
+        <select id="viewMode" onchange="page=1;render()">
+          <option value="time">전체 보기 (시간순)</option>
+          <option value="group">손님별 그룹 보기</option>
+        </select>
+        <button class="export" onclick="exportXLSX()">⬇ 엑셀 내보내기 (.xlsx)</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr><th>#</th><th>시간</th><th>성함</th><th>관계/소속</th><th>손님 측</th><th style="text-align:right">금액</th><th></th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="empty" id="empty">아직 접수된 조문비가 없습니다.</div>
+        <div class="pager" id="pager"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 설정 -->
+<div class="overlay" id="settingsOverlay">
+  <div class="card settings">
+    <h2>기록부 설정</h2>
+    <label>고인 성함</label>
+    <input id="cfgDeceased" type="text" placeholder="예: 김철수" autocomplete="off">
+
+    <label>유족 명단 (접수 시 '어느 분 손님' 선택지)</label>
+    <ul class="fam-list" id="famList"></ul>
+    <div class="fam-add">
+      <input id="famName" type="text" placeholder="성함 (예: 김훈이)">
+      <input id="famRel" type="text" placeholder="관계 (예: 상주·장남)">
+      <button onclick="addFamily()">추가</button>
+    </div>
+
+    <button class="btn" onclick="saveSettings()">저장하고 닫기</button>
+
+    <div class="danger-zone">
+      <button onclick="resetAll()">🗑 전체 초기화 (새 장례 시작)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = "jomunbi_app_v1";
+const PAGE_SIZE = 15;
+const DEFAULT_STATE = { deceased: "", family: ["공동/기타"], entries: [] };
+
+let STATE = null;
+try { STATE = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+if (!STATE || !Array.isArray(STATE.family) || !Array.isArray(STATE.entries)) {
+  STATE = JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+let editId = null;
+let page = 1;
+function gotoPage(p) { page = p; render(); }
+
+const fSide = document.getElementById("fSide");
+const filterSide = document.getElementById("filterSide");
+const fAmount = document.getElementById("fAmount");
+
+// ===== 공통 유틸 =====
+function fmt(n) { return n.toLocaleString("ko-KR") + "원"; }
+function timeStr(iso) {
+  const d = new Date(iso);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return mm + "/" + dd + " " + hh + ":" + mi;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+function payText(e) { return e.pay === "transfer" ? "계좌 송금" : "현금"; }
+
+// 그룹 키: 설정된 유족 + (명단에서 삭제됐지만 내역에 남은 이름)
+function groupKeys() {
+  const keys = STATE.family.slice();
+  STATE.entries.forEach(e => { if (!keys.includes(e.side)) keys.push(e.side); });
+  return keys;
+}
+
+function persist() {
+  localStorage.setItem(KEY, JSON.stringify(STATE));
+  saveToFile();
+}
+
+// ===== 화면 구성 =====
+function applyConfig() {
+  const t = STATE.deceased ? "故 " + STATE.deceased + " 님 조문비 기록부" : "조문비 기록부";
+  document.getElementById("pageTitle").textContent = t;
+  document.title = t;
+
+  const cur = fSide.value, curF = filterSide.value;
+  fSide.innerHTML = "";
+  filterSide.innerHTML = "";
+  groupKeys().forEach(f => fSide.add(new Option(f, f)));
+  filterSide.add(new Option("전체 보기", ""));
+  groupKeys().forEach(f => filterSide.add(new Option(f, f)));
+  if ([...fSide.options].some(o => o.value === cur)) fSide.value = cur;
+  if ([...filterSide.options].some(o => o.value === curF)) filterSide.value = curF;
+}
+
+function payTypeChanged() {
+  const t = document.querySelector("input[name=ptype]:checked").value;
+  document.getElementById("amountLabel").textContent = t === "transfer" ? "금액 (원) — 미확인 시 비워두기" : "금액 (원) *";
+  fAmount.placeholder = t === "transfer" ? "확인된 경우에만 입력" : "예: 50,000";
+}
+
+fAmount.addEventListener("input", () => {
+  const n = fAmount.value.replace(/[^0-9]/g, "");
+  fAmount.value = n ? Number(n).toLocaleString("ko-KR") : "";
+});
+function setAmt(v) { fAmount.value = v.toLocaleString("ko-KR"); }
+
+// ===== 설정 =====
+function openSettings() {
+  document.getElementById("cfgDeceased").value = STATE.deceased;
+  renderFamList();
+  document.getElementById("settingsOverlay").classList.add("open");
+}
+function renderFamList() {
+  const ul = document.getElementById("famList");
+  ul.innerHTML = "";
+  STATE.family.forEach((f, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = "<span>" + esc(f) + "</span>";
+    const del = document.createElement("button");
+    del.textContent = "삭제";
+    del.onclick = () => {
+      const used = STATE.entries.some(e => e.side === f);
+      if (used && !confirm("'" + f + "' 앞으로 접수된 내역이 있습니다.\n명단에서 빼도 기존 내역은 유지됩니다. 삭제할까요?")) return;
+      STATE.family.splice(i, 1);
+      renderFamList();
+    };
+    li.appendChild(del);
+    ul.appendChild(li);
+  });
+  if (!STATE.family.length) ul.innerHTML = "<li><span style='color:var(--sub)'>명단이 비어 있습니다. 아래에서 추가하세요.</span></li>";
+}
+function addFamily() {
+  const name = document.getElementById("famName").value.trim();
+  const rel = document.getElementById("famRel").value.trim();
+  if (!name) { alert("성함을 입력해 주세요."); return; }
+  const label = rel ? name + " (" + rel + ")" : name;
+  if (STATE.family.includes(label)) { alert("이미 명단에 있습니다."); return; }
+  STATE.family.push(label);
+  document.getElementById("famName").value = "";
+  document.getElementById("famRel").value = "";
+  document.getElementById("famName").focus();
+  renderFamList();
+}
+function saveSettings() {
+  STATE.deceased = document.getElementById("cfgDeceased").value.trim();
+  if (!STATE.family.length) STATE.family = ["공동/기타"];
+  persist();
+  applyConfig();
+  render();
+  document.getElementById("settingsOverlay").classList.remove("open");
+}
+function resetAll() {
+  if (!confirm("모든 접수 내역과 설정이 삭제됩니다. 계속할까요?")) return;
+  if (!confirm("정말 삭제할까요? 삭제 전 엑셀 내보내기로 백업을 권장합니다.")) return;
+  STATE = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  page = 1; editId = null;
+  persist();
+  applyConfig();
+  render();
+  openSettings();
+}
+
+// ===== 폴더 파일 저장 (File System Access API — Chrome/Edge) =====
+let fileHandle = null;
+const supportsFS = "showSaveFilePicker" in window;
+
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("jomunbi_db", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbSet(k, v) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("kv", "readwrite");
+    tx.objectStore("kv").put(v, k);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(k) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const rq = db.transaction("kv").objectStore("kv").get(k);
+    rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+  });
+}
+
+function updateFileStatus(msg, ok) {
+  const bar = document.getElementById("fileBar");
+  document.getElementById("fileStatus").textContent = msg;
+  bar.classList.toggle("connected", !!ok);
+  document.getElementById("btnConnect").style.display = ok ? "none" : "";
+  document.getElementById("btnReconnect").style.display = "none";
+}
+
+async function connectFile() {
+  if (!supportsFS) {
+    alert("이 브라우저는 폴더 파일 저장을 지원하지 않습니다.\nChrome 또는 Edge 브라우저에서 열어주세요.\n(브라우저 내부 저장과 엑셀 내보내기는 계속 사용 가능합니다)");
+    return;
+  }
+  try {
+    fileHandle = await showSaveFilePicker({
+      suggestedName: "조문비_데이터.json",
+      types: [{ description: "조문비 데이터", accept: { "application/json": [".json"] } }]
+    });
+    await idbSet("handle", fileHandle);
+    await mergeFromFile();
+    await saveToFile();
+  } catch (e) { /* 사용자 취소 */ }
+}
+
+async function reconnectFile() {
+  try {
+    const h = await idbGet("handle");
+    if (!h) { updateFileStatus("저장 파일 기록이 없습니다. 새로 연결해 주세요.", false); return; }
+    const perm = await h.requestPermission({ mode: "readwrite" });
+    if (perm !== "granted") return;
+    fileHandle = h;
+    await mergeFromFile();
+    await saveToFile();
+  } catch (e) {
+    updateFileStatus("파일을 찾을 수 없습니다. 새로 연결해 주세요.", false);
+  }
+}
+
+// 파일 내용과 현재 데이터를 병합 (내역은 id 기준 합집합 — 유실 방지)
+async function mergeFromFile() {
+  try {
+    const f = await fileHandle.getFile();
+    const txt = await f.text();
+    if (!txt.trim()) return;
+    const data = JSON.parse(txt);
+    const fileEntries = Array.isArray(data) ? data : (data.entries || []);
+    const ids = new Set(STATE.entries.map(e => e.id));
+    let changed = false;
+    fileEntries.forEach(e => { if (e && e.id && !ids.has(e.id)) { STATE.entries.push(e); changed = true; } });
+    if (changed) STATE.entries.sort((a, b) => a.id - b.id);
+    if (!STATE.deceased && data.deceased) { STATE.deceased = data.deceased; changed = true; }
+    if (Array.isArray(data.family)) {
+      data.family.forEach(f2 => { if (!STATE.family.includes(f2)) { STATE.family.push(f2); changed = true; } });
+    }
+    if (changed) {
+      localStorage.setItem(KEY, JSON.stringify(STATE));
+      applyConfig();
+      render();
+    }
+  } catch (e) { /* 새 파일이거나 형식 오류 — 무시 */ }
+}
+
+async function saveToFile() {
+  if (!fileHandle) return;
+  try {
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify({ deceased: STATE.deceased, family: STATE.family, updated: new Date().toISOString(), entries: STATE.entries }, null, 2));
+    await w.close();
+    updateFileStatus("✓ 폴더 파일에 자동 저장 중: " + fileHandle.name + " (마지막 저장 " + timeStr(new Date().toISOString()) + ")", true);
+  } catch (e) {
+    updateFileStatus("⚠ 파일 저장 실패 — 브라우저 내부 저장은 유지됩니다. 다시 연결해 주세요.", false);
+  }
+}
+
+(async () => {
+  if (!supportsFS) {
+    updateFileStatus("이 브라우저는 폴더 파일 저장 미지원 (Chrome/Edge 권장) — 브라우저 내부 저장 사용 중", false);
+    document.getElementById("btnConnect").style.display = "none";
+    return;
+  }
+  try {
+    const h = await idbGet("handle");
+    if (h) {
+      document.getElementById("fileStatus").textContent = "이전에 연결한 저장 파일이 있습니다. 버튼을 눌러 다시 연결하세요.";
+      document.getElementById("btnConnect").style.display = "none";
+      document.getElementById("btnReconnect").style.display = "";
+    }
+  } catch (e) {}
+})();
+
+// ===== 접수 =====
+function saveEntry() {
+  const name = document.getElementById("fName").value.trim();
+  const amount = Number(fAmount.value.replace(/[^0-9]/g, ""));
+  const side = fSide.value;
+  const relation = document.getElementById("fRelation").value.trim();
+  const pay = document.querySelector("input[name=ptype]:checked").value;
+
+  if (!name) { alert("조문객 성함을 입력해 주세요."); return; }
+  if (!side) { alert("유족 명단이 비어 있습니다. ⚙ 설정에서 유족을 추가해 주세요."); return; }
+  if (!amount && pay === "cash") { alert("금액을 입력해 주세요."); return; }
+
+  if (editId !== null) {
+    const e = STATE.entries.find(x => x.id === editId);
+    if (e) { e.name = name; e.amount = amount; e.side = side; e.relation = relation; e.pay = pay; }
+    cancelEdit();
+  } else {
+    STATE.entries.push({
+      id: Date.now(),
+      time: new Date().toISOString(),
+      name, amount, side, relation, pay
+    });
+    clearForm();
+    document.getElementById("fName").focus();
+    page = 1; // 새 접수는 1페이지 맨 위에 표시
+  }
+  persist();
+  render();
+}
+
+function clearForm() {
+  document.getElementById("fName").value = "";
+  fAmount.value = "";
+  document.getElementById("fRelation").value = "";
+  document.querySelector("input[name=ptype][value=cash]").checked = true;
+  payTypeChanged();
+}
+
+function startEdit(id) {
+  const e = STATE.entries.find(x => x.id === id);
+  if (!e) return;
+  editId = id;
+  document.getElementById("fName").value = e.name;
+  fAmount.value = e.amount ? e.amount.toLocaleString("ko-KR") : "";
+  if ([...fSide.options].some(o => o.value === e.side)) fSide.value = e.side;
+  document.getElementById("fRelation").value = e.relation || "";
+  document.querySelector("input[name=ptype][value=" + (e.pay === "transfer" ? "transfer" : "cash") + "]").checked = true;
+  payTypeChanged();
+  document.getElementById("formTitle").textContent = "접수 내역 수정";
+  document.getElementById("btnSave").textContent = "수정 저장";
+  document.getElementById("btnCancel").style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelEdit() {
+  editId = null;
+  clearForm();
+  document.getElementById("formTitle").textContent = "조문비 접수";
+  document.getElementById("btnSave").textContent = "접수 등록";
+  document.getElementById("btnCancel").style.display = "none";
+}
+
+function removeEntry(id) {
+  const e = STATE.entries.find(x => x.id === id);
+  if (!e) return;
+  if (!confirm(e.name + " 님 (" + (e.amount ? fmt(e.amount) : "계좌 송금") + ") 내역을 삭제할까요?")) return;
+  STATE.entries = STATE.entries.filter(x => x.id !== id);
+  if (editId === id) cancelEdit();
+  persist();
+  render();
+}
+
+// ===== 렌더링 =====
+function render() {
+  const entries = STATE.entries;
+  const total = entries.reduce((s, e) => s + (e.amount || 0), 0);
+  document.getElementById("totalAmt").textContent = fmt(total);
+  document.getElementById("totalCnt").textContent = entries.length + "건";
+
+  const pending = entries.filter(e => e.pay === "transfer" && !e.amount).length;
+  const note = document.getElementById("pendingNote");
+  note.style.display = pending ? "block" : "none";
+  note.textContent = pending ? "⚠ 금액 미확인 계좌 송금 " + pending + "건 — 입금 확인 후 수정해 주세요" : "";
+
+  // 유족별 집계
+  const box = document.getElementById("sideSummary");
+  box.innerHTML = "";
+  groupKeys().forEach(f => {
+    const list = entries.filter(e => e.side === f);
+    if (!list.length) return;
+    const sum = list.reduce((s, e) => s + (e.amount || 0), 0);
+    const pd = list.filter(e => e.pay === "transfer" && !e.amount).length;
+    const div = document.createElement("div");
+    div.className = "side-item";
+    div.innerHTML = "<b>" + esc(f.split(" (")[0]) + "</b><span>" + list.length + "건" + (pd ? " · 미확인 " + pd : "") + "</span> <span class='amt'>" + fmt(sum) + "</span>";
+    box.appendChild(div);
+  });
+  if (!box.children.length) box.innerHTML = "<div class='side-item'>접수되면 유족별로 집계됩니다.</div>";
+
+  // 목록 (검색/필터)
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const fs = filterSide.value;
+  const mode = document.getElementById("viewMode").value;
+  const filtered = entries
+    .filter(e => !fs || e.side === fs)
+    .filter(e => !q || e.name.toLowerCase().includes(q) || (e.relation || "").toLowerCase().includes(q));
+
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  const makeRow = (e) => {
+    const idx = entries.indexOf(e) + 1;
+    const amtHtml = e.amount
+      ? fmt(e.amount) + (e.pay === "transfer" ? " <span class='transfer'>💳</span>" : "")
+      : "<span class='transfer'>계좌 송금</span>";
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + idx + "</td>" +
+      "<td class='time'>" + timeStr(e.time) + "</td>" +
+      "<td><b>" + esc(e.name) + "</b></td>" +
+      "<td>" + esc(e.relation || "-") + "</td>" +
+      "<td>" + esc(e.side.split(" (")[0]) + "</td>" +
+      "<td class='amt'>" + amtHtml + "</td>" +
+      "<td class='row-btns'>" +
+        "<button title='수정' onclick='startEdit(" + e.id + ")'>✏️</button>" +
+        "<button title='삭제' onclick='removeEntry(" + e.id + ")'>🗑</button>" +
+      "</td>";
+    return tr;
+  };
+
+  const pager = document.getElementById("pager");
+  pager.innerHTML = "";
+
+  if (mode === "group") {
+    groupKeys().forEach(f => {
+      const list = filtered.filter(e => e.side === f);
+      if (!list.length) return;
+      const sum = list.reduce((s, e) => s + (e.amount || 0), 0);
+      const gr = document.createElement("tr");
+      gr.className = "group-row";
+      gr.innerHTML = "<td colspan='7'>" + esc(f) + "<span>" + list.length + "건 · " + fmt(sum) + "</span></td>";
+      tbody.appendChild(gr);
+      list.forEach(e => tbody.appendChild(makeRow(e)));
+    });
+  } else {
+    const ordered = filtered.slice().reverse();
+    const pageCount = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
+    if (page > pageCount) page = pageCount;
+    if (page < 1) page = 1;
+    ordered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).forEach(e => tbody.appendChild(makeRow(e)));
+
+    if (pageCount > 1) {
+      const addBtn = (label, p, opts) => {
+        const b = document.createElement("button");
+        b.textContent = label;
+        if (opts && opts.cur) b.className = "cur";
+        if (opts && opts.disabled) b.disabled = true;
+        else b.onclick = () => gotoPage(p);
+        pager.appendChild(b);
+      };
+      addBtn("◀", page - 1, { disabled: page === 1 });
+      const nums = new Set([1, pageCount]);
+      for (let p = page - 2; p <= page + 2; p++) if (p >= 1 && p <= pageCount) nums.add(p);
+      let prev = 0;
+      [...nums].sort((a, b) => a - b).forEach(p => {
+        if (prev && p - prev > 1) {
+          const gap = document.createElement("span");
+          gap.textContent = "…";
+          pager.appendChild(gap);
+        }
+        addBtn(String(p), p, { cur: p === page });
+        prev = p;
+      });
+      addBtn("▶", page + 1, { disabled: page === pageCount });
+      const info = document.createElement("span");
+      info.className = "info";
+      info.textContent = "총 " + ordered.length + "건";
+      pager.appendChild(info);
+    }
+  }
+  document.getElementById("empty").style.display = filtered.length ? "none" : "block";
+}
+
+// ===== 엑셀(.xlsx) 내보내기 — 외부 라이브러리 없이 생성 (오프라인 동작) =====
+function crc32(buf) {
+  let t = crc32.table;
+  if (!t) {
+    t = crc32.table = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[i] = c >>> 0;
+    }
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ t[(crc ^ buf[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function makeZip(files) { // files: [{name, text}] → Uint8Array 배열 (무압축 ZIP)
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0, count = 0;
+  const u16 = n => new Uint8Array([n & 255, (n >> 8) & 255]);
+  const u32 = n => new Uint8Array([n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255]);
+  files.forEach(f => {
+    const name = enc.encode(f.name);
+    const data = enc.encode(f.text);
+    const crc = crc32(data);
+    const local = [u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), name, data];
+    central.push(u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0),
+      u32(0), u32(offset), name);
+    local.forEach(p => { parts.push(p); offset += p.length; });
+    count++;
+  });
+  let cdSize = 0;
+  central.forEach(p => { parts.push(p); cdSize += p.length; });
+  parts.push(u32(0x06054b50), u16(0), u16(0), u16(count), u16(count), u32(cdSize), u32(offset), u16(0));
+  return parts;
+}
+
+function buildXlsxParts(list) {
+  const escX = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const COLS = "ABCDEF";
+  let rowsXml = "", merges = [], r = 0;
+  // s(스타일): 0 기본, 1 굵게, 2 그룹머리글, 3 금액, 4 굵은금액
+  const addRow = (cells, styles) => {
+    r++;
+    let xml = '<row r="' + r + '">';
+    cells.forEach((c, i) => {
+      if (c === null || c === undefined || c === "") return;
+      const ref = COLS[i] + r, s = styles[i] || 0;
+      if (typeof c === "number") xml += '<c r="' + ref + '" s="' + s + '" t="n"><v>' + c + '</v></c>';
+      else xml += '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + escX(c) + '</t></is></c>';
+    });
+    rowsXml += xml + '</row>';
+  };
+
+  if (STATE.deceased) {
+    addRow(["故 " + STATE.deceased + " 님 조문비 기록", "", "", "", "", ""], [1]);
+    merges.push("A" + r + ":F" + r);
+  }
+  addRow(["번호", "접수시간", "조문객 성함", "관계/소속", "방식", "금액"], [1, 1, 1, 1, 1, 1]);
+  groupKeys().forEach(f => {
+    const group = list.filter(e => e.side === f);
+    if (!group.length) return;
+    const sum = group.reduce((s, e) => s + (e.amount || 0), 0);
+    const pd = group.filter(e => e.pay === "transfer" && !e.amount).length;
+    addRow([f + "  (" + group.length + "건)", "", "", "", "", ""], [2]);
+    merges.push("A" + r + ":F" + r);
+    group.forEach((e, i) => addRow([
+      i + 1, timeStr(e.time), e.name, e.relation || "",
+      payText(e), e.amount ? e.amount : "미확인"
+    ], [0, 0, 0, 0, 0, 3]));
+    addRow(["", "", "", "", "소계" + (pd ? " (미확인 " + pd + "건 제외)" : ""), sum], [0, 0, 0, 0, 1, 4]);
+  });
+  addRow(["", "", "", "", "", ""], [0]);
+  const totalPd = list.filter(e => e.pay === "transfer" && !e.amount).length;
+  addRow(["", "", "", "", "총 합계 (" + list.length + "건" + (totalPd ? ", 미확인 " + totalPd + "건 제외" : "") + ")",
+    list.reduce((s, e) => s + (e.amount || 0), 0)], [0, 0, 0, 0, 1, 4]);
+
+  const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<cols><col min="1" max="1" width="24" customWidth="1"/><col min="2" max="2" width="13" customWidth="1"/>' +
+    '<col min="3" max="3" width="15" customWidth="1"/><col min="4" max="4" width="20" customWidth="1"/>' +
+    '<col min="5" max="5" width="11" customWidth="1"/><col min="6" max="6" width="13" customWidth="1"/></cols>' +
+    '<sheetData>' + rowsXml + '</sheetData>' +
+    (merges.length ? '<mergeCells count="' + merges.length + '">' + merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>' : '') +
+    '</worksheet>';
+
+  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0"/></numFmts>' +
+    '<fonts count="2"><font><sz val="11"/><name val="Malgun Gothic"/></font>' +
+    '<font><b/><sz val="11"/><name val="Malgun Gothic"/></font></fonts>' +
+    '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFEEF1F5"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="5">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+    '<xf numFmtId="164" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' +
+    '</cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+  return [
+    { name: "[Content_Types].xml", text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      '</Types>' },
+    { name: "_rels/.rels", text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '</Relationships>' },
+    { name: "xl/workbook.xml", text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheets><sheet name="조문비 기록" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+    { name: "xl/_rels/workbook.xml.rels", text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+      '</Relationships>' },
+    { name: "xl/styles.xml", text: styles },
+    { name: "xl/worksheets/sheet1.xml", text: sheet }
+  ];
+}
+
+function exportXLSX() {
+  if (!STATE.entries.length) { alert("내보낼 내역이 없습니다."); return; }
+  const parts = makeZip(buildXlsxParts(STATE.entries));
+  const blob = new Blob(parts, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = "조문비_기록_" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + ".xlsx";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ===== 시작 =====
+applyConfig();
+render();
+payTypeChanged();
+if (!STATE.deceased && !STATE.entries.length) openSettings(); // 첫 사용 시 설정 안내
+</script>
+</body>
+</html>
